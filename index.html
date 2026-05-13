@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>CSUN Location Quiz</title>
+	<link rel="stylesheet" href="styles.css" />
+	<script defer src="script.js"></script>
+</head>
+<body>
+	<main class="app-shell">
+		<section class="sidebar" aria-labelledby="page-title">
+			<div class="eyebrow">Google Maps API Quiz</div>
+			<div>
+				<h1 id="page-title">CSUN location challenge</h1>
+				<p class="lead">Double-click the map where you think the named location is. The map stays locked, so the only thing that changes is your guess and the feedback after each round.</p>
+			</div>
+
+			<div class="stats" aria-label="quiz stats">
+				<div class="stat-card">
+					<span class="stat-label">Round</span>
+					<div class="stat-value" id="round-count">1 / 5</div>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">Correct</span>
+					<div class="stat-value" id="score-count">0</div>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">Time</span>
+					<div class="stat-value" id="time-count">00:00</div>
+				</div>
+				<div class="stat-card">
+					<span class="stat-label">High Score</span>
+					<div class="stat-value" id="high-score-count">0 / 5</div>
+				</div>
+			</div>
+
+			<div class="prompt-box">
+				<div class="prompt-label">Find this location</div>
+				<p class="prompt-target" id="target-name">Alumni Relations</p>
+				<p class="prompt-help" id="target-help">Double-click the location you believe matches the target. The map will reveal the correct area after your guess.</p>
+			</div>
+
+			<div class="feedback" id="feedback" aria-live="polite">
+				Waiting for your first guess.
+			</div>
+
+			<div class="actions">
+				<button class="primary" id="next-button" type="button" disabled>Next location</button>
+				<button class="secondary" id="restart-button" type="button">Restart quiz</button>
+			</div>
+		</section>
+
+		<section class="map-panel" aria-label="map area">
+			<div class="map-overlay">
+				<span>How to play</span>
+				Keep zooming and panning off, then double-click once per round.
+			</div>
+			<div id="map"></div>
+		</section>
+	</main>
+	<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDgoXiQ_pX65fpvvU0LNV_-r_teJH3xbNk&callback=initMap"></script>
+</body>
+</html>
