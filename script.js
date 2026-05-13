@@ -1,3 +1,4 @@
+// QUIZ LOCATIONS: Array of CSUN campus locations with coordinates and acceptance radius (in meters)
 const locations = [
 	{
 		name: "Alumni Relations",
@@ -36,19 +37,21 @@ const locations = [
 	},
 ];
 
-let map;
-let currentRound = 0;
-let score = 0;
-let roundLocked = false;
-let guessMarker = null;
-let revealCircle = null;
-let pulseCircle = null;
-let pulseAnimationFrame = null;
-let timerInterval = null;
-let timerStartTime = null;
-let timerElapsedMs = 0;
-let highScore = null;
+// STATE VARIABLES: Track quiz progress, map objects, and user performance
+let map; // Google Maps instance
+let currentRound = 0; // Current quiz round (0-4)
+let score = 0; // Number of correct guesses (0-5)
+let roundLocked = false; // Prevents multiple guesses per round
+let guessMarker = null; // Marker placed at user's guess location
+let revealCircle = null; // Circle showing target location and acceptance radius
+let pulseCircle = null; // Animated pulse circle for visual feedback
+let pulseAnimationFrame = null; // RequestAnimationFrame ID for pulse animation
+let timerInterval = null; // SetInterval ID for timer updates
+let timerStartTime = null; // Performance.now() timestamp when timer started
+let timerElapsedMs = 0; // Total elapsed milliseconds
+let highScore = null; // High score object {score, timeMs} from localStorage
 
+// DOM ELEMENT REFERENCES: Cache frequently accessed UI elements
 const roundCountEl = document.getElementById("round-count");
 const scoreCountEl = document.getElementById("score-count");
 const timeCountEl = document.getElementById("time-count");
@@ -58,8 +61,14 @@ const targetHelpEl = document.getElementById("target-help");
 const feedbackEl = document.getElementById("feedback");
 const nextButton = document.getElementById("next-button");
 const restartButton = document.getElementById("restart-button");
+
+// STORAGE KEY: LocalStorage key for persisting high score
 const HIGH_SCORE_STORAGE_KEY = "csun-location-quiz-high-score";
 
+// ===== UTILITY FUNCTIONS =====
+
+// HAVERSINE DISTANCE: Calculate distance between two geographic points in meters
+// Used to determine if a guess is within the acceptable radius of the target location
 function haversineDistance(pointA, pointB) {
 	const earthRadius = 6371000;
 	const toRadians = (value) => (value * Math.PI) / 180;
@@ -75,6 +84,7 @@ function haversineDistance(pointA, pointB) {
 	return earthRadius * c;
 }
 
+// SET FEEDBACK: Update feedback message with optional success/error styling
 function setFeedback(message, status) {
 	feedbackEl.classList.remove("success", "error");
 	if (status) {
@@ -83,6 +93,9 @@ function setFeedback(message, status) {
 	feedbackEl.innerHTML = message;
 }
 
+// ===== HIGH SCORE MANAGEMENT =====
+
+// LOAD HIGH SCORE: Retrieve high score from localStorage and validate data integrity
 function loadHighScore() {
 	try {
 		const storedHighScore = localStorage.getItem(HIGH_SCORE_STORAGE_KEY);
@@ -96,6 +109,7 @@ function loadHighScore() {
 	}
 }
 
+// SAVE HIGH SCORE: Persist high score to localStorage
 function saveHighScore() {
 	if (!highScore) {
 		return;
@@ -108,6 +122,7 @@ function saveHighScore() {
 	}
 }
 
+// UPDATE HIGH SCORE DISPLAY: Refresh sidebar high score card with current/best stats
 function updateHighScoreDisplay() {
 	if (!highScore) {
 		highScoreCountEl.innerHTML = `<span class="stat-main">0 / ${locations.length}</span><span class="stat-sub">Best: --</span>`;
@@ -117,6 +132,9 @@ function updateHighScoreDisplay() {
 	highScoreCountEl.innerHTML = `<span class="stat-main">${highScore.score} / ${locations.length}</span><span class="stat-sub">Best: ${formatElapsedTime(highScore.timeMs)}</span>`;
 }
 
+// ===== TIMER FUNCTIONS =====
+
+// FORMAT ELAPSED TIME: Convert milliseconds to mm:ss display format
 function formatElapsedTime(totalMilliseconds) {
 	const totalSeconds = Math.floor(totalMilliseconds / 1000);
 	const minutes = Math.floor(totalSeconds / 60);
@@ -124,11 +142,13 @@ function formatElapsedTime(totalMilliseconds) {
 	return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+// UPDATE TIMER DISPLAY: Refresh timer on sidebar with elapsed time
 function updateTimerDisplay() {
 	const elapsedMilliseconds = timerStartTime ? timerElapsedMs + (performance.now() - timerStartTime) : timerElapsedMs;
 	timeCountEl.textContent = formatElapsedTime(elapsedMilliseconds);
 }
 
+// START TIMER: Initialize timer on first round
 function startTimer() {
 	if (timerInterval) {
 		clearInterval(timerInterval);
@@ -140,6 +160,7 @@ function startTimer() {
 	timerInterval = setInterval(updateTimerDisplay, 1000);
 }
 
+// STOP TIMER: Stop timer on quiz completion, preserve elapsed time
 function stopTimer() {
 	if (timerStartTime !== null) {
 		timerElapsedMs += performance.now() - timerStartTime;
@@ -154,6 +175,9 @@ function stopTimer() {
 	updateTimerDisplay();
 }
 
+// ===== MAP OVERLAY MANAGEMENT =====
+
+// CLEAR OVERLAYS: Remove all map markers, circles, and animations
 function clearOverlays() {
 	if (pulseAnimationFrame) {
 		cancelAnimationFrame(pulseAnimationFrame);
@@ -176,6 +200,9 @@ function clearOverlays() {
 	}
 }
 
+// ===== SIDEBAR UI UPDATES =====
+
+// UPDATE SIDEBAR: Refresh round counter, score, and target location name/prompt
 function updateSidebar() {
 	roundCountEl.textContent = `${Math.min(currentRound + 1, locations.length)} / ${locations.length}`;
 	scoreCountEl.textContent = score;
@@ -186,6 +213,9 @@ function updateSidebar() {
 	}
 }
 
+// ===== QUIZ FLOW CONTROL =====
+
+// FINISH QUIZ: Handle quiz completion, update high score if applicable, display final results
 function finishQuiz() {
 	roundLocked = true;
 	stopTimer();
@@ -207,6 +237,7 @@ function finishQuiz() {
 	);
 }
 
+// GO TO ROUND: Initialize specified round, clear overlays, start timer if first round
 function goToRound(index) {
 	currentRound = index;
 	roundLocked = false;
@@ -220,6 +251,8 @@ function goToRound(index) {
 	setFeedback("Waiting for your guess.");
 }
 
+// ANIMATE PULSE: Create expanding, fading circle animation for visual feedback
+// Parameters: center (LatLng), color (hex string for success/error)
 function animatePulse(center, color) {
 	if (pulseAnimationFrame) {
 		cancelAnimationFrame(pulseAnimationFrame);
@@ -248,7 +281,7 @@ function animatePulse(center, color) {
 	const step = (now) => {
 		const elapsed = now - startTime;
 		const progress = Math.min(elapsed / duration, 1);
-		const eased = 1 - Math.pow(1 - progress, 3);
+		const eased = 1 - Math.pow(1 - progress, 3); // Cubic easing for smooth animation
 		const radius = 20 + eased * maxRadius;
 		const opacity = 0.18 * (1 - progress);
 
@@ -272,6 +305,7 @@ function animatePulse(center, color) {
 	pulseAnimationFrame = requestAnimationFrame(step);
 }
 
+// ADVANCE ROUND: Move to next round or finish quiz if final round
 function advanceRound() {
 	if (currentRound === locations.length - 1) {
 		finishQuiz();
@@ -281,6 +315,8 @@ function advanceRound() {
 	goToRound(currentRound + 1);
 }
 
+// HANDLE GUESS: Process user's double-click guess, calculate distance, show feedback
+// Parameters: latLng (Google Maps LatLng object from double-click event)
 function handleGuess(latLng) {
 	if (roundLocked) {
 		return;
@@ -293,6 +329,7 @@ function handleGuess(latLng) {
 	const distance = haversineDistance(guess, targetPoint);
 	const correct = distance <= target.radius;
 
+	// Place marker at user's guess location
 	guessMarker = new google.maps.Marker({
 		position: guess,
 		map,
@@ -300,6 +337,7 @@ function handleGuess(latLng) {
 		animation: google.maps.Animation.DROP,
 	});
 
+	// Draw circle showing target location and acceptance radius
 	revealCircle = new google.maps.Circle({
 		map,
 		center: targetPoint,
@@ -334,9 +372,15 @@ function handleGuess(latLng) {
 	}
 }
 
+// ===== MAP INITIALIZATION =====
+
+// INIT MAP: Initialize Google Maps, load high score, set up event listeners
+// Called by Google Maps API callback after script loads
 function initMap() {
 	loadHighScore();
 	updateHighScoreDisplay();
+	
+	// Create map with disabled UI controls and dark theme styling
 	map = new google.maps.Map(document.getElementById("map"), {
         //presentation requirement1: https://developers.google.com/maps/documentation/javascript/controls
 		disableDefaultUI: true,
@@ -360,18 +404,25 @@ function initMap() {
 		],
 	});
 
+	// Fit map to show all locations
 	const bounds = new google.maps.LatLngBounds();
 	locations.forEach((location) => {
 		bounds.extend({ lat: location.lat, lng: location.lng });
 	});
 	map.fitBounds(bounds, 80);
 
+	// Register double-click handler for guesses
 	map.addListener("dblclick", (event) => handleGuess(event.latLng));
 	updateTimerDisplay();
 	goToRound(0);
 }
 
+// ===== EVENT LISTENERS =====
+
+// Next button: Advance to next round or finish quiz
 nextButton.addEventListener("click", advanceRound);
+
+// Restart button: Reset all stats and start quiz from beginning
 restartButton.addEventListener("click", () => {
 	score = 0;
 	currentRound = 0;
@@ -382,4 +433,5 @@ restartButton.addEventListener("click", () => {
 	goToRound(0);
 });
 
+// Export initMap for Google Maps API callback
 window.initMap = initMap;
