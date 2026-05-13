@@ -21,9 +21,10 @@ body {
 	margin: 0;
 	min-height: 100%;
 	background:
-		radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 30%),
-		radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.16), transparent 34%),
-		linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+		radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 30%),
+		radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.08), transparent 34%),
+		linear-gradient(180deg, rgba(11, 18, 32, 0.75) 0%, rgba(15, 23, 42, 0.75) 100%),
+		url("assets/hhc.jpg") center / cover no-repeat fixed;
 	color: var(--text);
 	font-family: "Trebuchet MS", "Segoe UI", sans-serif;
 }
