@@ -338,6 +338,7 @@ function initMap() {
 	loadHighScore();
 	updateHighScoreDisplay();
 	map = new google.maps.Map(document.getElementById("map"), {
+        //presentation requirement1: https://developers.google.com/maps/documentation/javascript/controls
 		disableDefaultUI: true,
 		draggable: false,
 		gestureHandling: "none",
@@ -348,6 +349,7 @@ function initMap() {
 		streetViewControl: false,
 		fullscreenControl: false,
 		clickableIcons: false,
+        //presentation requirement2: https://developers.google.com/maps/documentation/javascript/json-styling-overview
 		styles: [
 			{ elementType: "geometry", stylers: [{ color: "#1f2937" }] },
 			{ elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
